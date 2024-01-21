@@ -10,17 +10,26 @@ import {
   faCircleXmark,
   faLocationDot,
 } from "@fortawesome/free-solid-svg-icons";
-import { useState } from "react";
+import { useContext, useState } from "react";
 import React from "react";
 import useFetch from "../../hooks/useFetch";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import { SearchContext } from "../../context/SearchContext";
+import { dayDifference } from "../../utils/dayDifference";
+import { AuthContext } from "../../context/AuthContext";
+import Reserve from "../../components/reserve/Reserve";
 
 const Hotel = () => {
+  const { dates, options } = useContext(SearchContext);
+  const { user } = useContext(AuthContext);
   const location = useLocation();
+  const navigate = useNavigate();
   const id = location.pathname.split("/")[2];
   const [slideNumber, setSlideNumber] = useState(0);
   const [open, setOpen] = useState(false);
+  const [openModal, setOpenModal] = useState(false);
   const { data, loading, error } = useFetch(`/hotels/find/${id}`);
+  const days = dayDifference(dates[0]?.endDate, dates[0]?.startDate);
 
   const handleOpen = (i) => {
     setSlideNumber(i);
@@ -37,6 +46,14 @@ const Hotel = () => {
     }
 
     setSlideNumber(newSlideNumber);
+  };
+
+  const handleOnClick = () => {
+    if (user) {
+      setOpenModal(true);
+    } else {
+      navigate("/login");
+    }
   };
 
   if (loading || error) {
@@ -109,15 +126,16 @@ const Hotel = () => {
                 <p className="hotelDesc">{data?.data?.desc}</p>
               </div>
               <div className="hotelDetailsPrice">
-                <h1>Perfect for a 9-night stay!</h1>
+                <h1>Perfect for a {days}-night stay!</h1>
                 <span>
                   Located in the real heart of Krakow, this property has an
                   excellent location score of 9.8!
                 </span>
                 <h2>
-                  <b>$945</b> (9 nights)
+                  <b>${days * data?.data?.cheapestPrice * options.room}</b> (
+                  {days} nights)
                 </h2>
-                <button>Reserve or Book Now!</button>
+                <button onClick={handleOnClick}>Reserve or Book Now!</button>
               </div>
             </div>
           </div>
@@ -125,6 +143,7 @@ const Hotel = () => {
           <Footer />
         </div>
       )}
+      {openModal && <Reserve setOpen={setOpenModal} hotelId={id} />}
     </div>
   );
 };
